@@ -20,20 +20,21 @@ app.on('ready', function(){
 	var win = new BrowserWindow({
 		width:1000,
 		height:600,
-      resizable: true,
-      center: true,
-      show: true,
-      frame: true,
-      autoHideMenuBar: true,
-      titleBarStyle: 'hidden-inset',
-      webPreferences: {
-        javascript: true,
-        plugins: true,
-        nodeIntegration: false,
-        webSecurity: false,
-        preload: __dirname + '/preload.js'}
+		resizable: true,
+		movable:true,
+		center: true,
+		show: true,
+		frame: true,
+		autoHideMenuBar: true,
+		titleBarStyle: 'hidden-inset',
+		webPreferences: {
+			javascript: true,
+			plugins: true,
+			nodeIntegration: false,
+			webSecurity: false,
+			preload: __dirname + '/preload.js'
+		}
 	});
-	// win.loadURL('http://user.qzone.qq.com/724895059/infocenter')
 	var urlStr = 'http://wx.qq.com/?lang=zh_CN&t=' + Date.now();
 	// var options = {"httpReferrer":urlStr,"extraHeaders":"pragma: no-cache\nAccept:application/json, text/plain, */*\nContent-Type:application/json;charset=UTF-8", "userAgent":'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
 	win.loadURL(urlStr)

@@ -2,7 +2,6 @@
 var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
-
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
@@ -152,8 +151,10 @@ function onReddot($chat_item){
 		var wxid = $msg.find('.signature').text()
 		var img = $msg.find('.img').prop('src') // 认证限制
 		debug('接收', 'card', name, wxid)
-		reply.text = name + '\n' + wxid
+		// reply.text = name + '\n' + wxid
+		reply.text = "你好  我的朋友"
 		addFriends();
+		return false;
 	} else if ($msg.is('a.app')) {
 		var url = $msg.attr('href')
 		url = decodeURIComponent(url.match(/requrl=(.+?)&/)[1])
@@ -189,7 +190,7 @@ function onReddot($chat_item){
 		} else if (text === '我发起了实时对讲') {
 			text = '对讲你妹'
 		} else if (text === '该类型暂不支持，请在手机上查看') {
-			text = ''
+			text = '啥玩意儿'
 		} else if (text.match(/(.+)发起了位置共享，请在手机上查看/) ||
 				text.match(/(.+)started a real\-time location session\. View on phone/)) {
 			text = '发毛位置共享'
@@ -199,6 +200,7 @@ function onReddot($chat_item){
 			normal = true
 		}
 		debug('接收', 'text', text)
+		requestData()
 		// if (normal && !text.match(/叼|屌|diao|丢你|碉堡/i)) text = ''
 		reply.text = text
 	}else{
@@ -210,12 +212,13 @@ function onReddot($chat_item){
 	// ~~直接设#editArea的innerText无效 暂时找不到其他方法~~
 	if ($nickname.length) { // 群聊
 		_console.log("群聊。。。"+ reply.text);
-		if(reply.text.indexOf("@"+usernickname)>=0){
+		if(reply.text.indexOf("@" + usernickname)>=0){
+			
 			reply.text = "叫我干啥~~";
 			paste(reply)
 		}
 	}else{
-			paste(reply)
+		paste(reply)
 	}
 	// 发送text 可以直接更新scope中的变量 @昌爷 提点
 	// 但不知为毛 发不了表情
@@ -224,11 +227,8 @@ function onReddot($chat_item){
 	// } else {
 	// 	angular.element('#editArea').scope().editAreaCtn = reply.text
 	// }
-
-
-	// $('.web_wechat_face')[0].click()
-	// $('[title=阴险]')[0].click()
-
+	// $('.web_wechat_face')[0].click() 
+	// $('[title=阴险]')[0].click() 
 	if (reply.image) {
 		setTimeout(function(){
 			var tryClickBtn = setInterval(function(){
@@ -245,12 +245,8 @@ function onReddot($chat_item){
 		$('.btn_send')[0].click()
 		reset()
 	}
-
-
-
 	}, 100)
 }
-
 
 function reset(){
 	// 适当清理历史 缓解dom数量
@@ -271,7 +267,7 @@ function paste(opt){
 			clipboard.writeImage(NativeImage.createFromPath(opt.image))
 		} catch (err) {
 			opt.image = null
-			opt.text = '妈蛋 发不出图片'
+			opt.text = '发不出图片'
 		}
 	}
 	if (opt.html) clipboard.writeHtml(opt.html)
@@ -282,9 +278,47 @@ function paste(opt){
 	clipboard.writeHtml(oldHtml)
 	clipboard.writeText(oldText)
 }
+
 //添加好友
 function addFriends(){
+	_console.log("开始自动添加好友。。。。。");
 	$(".bubble").filter(".js_message_bubble").filter(".ng-scope").filter(".bubble_default").filter(".left").children(".bubble_cont").children(".card")[0].click();
 	$("#mmpop_profile .nickname_area .web_wechat_tab_add").click();
 	$("#mmpop_profile .form_area a.button").click();
+	setTimeout(function(){
+		$(".bubble").filter(".js_message_bubble").filter(".ng-scope").filter(".bubble_default").filter(".left").children(".bubble_cont").children(".card")[0].click();
+		$("#mmpop_profile .nickname_area .web_wechat_tab_launch-chat").click();
+		var opt ={};
+		opt.text = "容我先说句话可好~~";
+		paste(opt)
+		$('.btn_send')[0].click()
+		reset()
+	},1000);
+}
+//request data
+function requestData(title,url){
+	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
+	var title = '宗宁：网红经济的悖';
+	var url = 'http://mp.weixin.qq.com/s?__biz=MjM5MTk2OTIwOA==&mid=401562035&idx=1&sn=c3bebee6cb09072cd048bea3108b03c7&scene=23&srcid=0321UwN45f6LVCgXQvbzo1NI#rd'
+	$.ajax({
+            type: 'post',
+            url: requestUrl,
+            dataType: "json",
+            // contentType: "multipart/form-data;",
+            data: {'title':'宗宁：网红经济的悖','url':encodeURIComponent(url)},
+            jsonp:"callback",
+            timeout: 100000,
+            crossDomain:true,
+            cache: false,
+            async: true,
+            statusCode: {
+		        
+		    },
+            beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
+                
+            },
+            success: function(data, textStatus, XMLHttpRequest){
+                console.log(data);
+            }
+        })
 }
