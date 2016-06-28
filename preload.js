@@ -200,7 +200,7 @@ function onReddot($chat_item){
 			normal = true
 		}
 		debug('接收', 'text', text)
-		requestData()
+		
 		// if (normal && !text.match(/叼|屌|diao|丢你|碉堡/i)) text = ''
 		reply.text = text
 	}else{
@@ -213,12 +213,11 @@ function onReddot($chat_item){
 	if ($nickname.length) { // 群聊
 		_console.log("群聊。。。"+ reply.text);
 		if(reply.text.indexOf("@" + usernickname)>=0){
-			
 			reply.text = "叫我干啥~~";
-			paste(reply)
+			requestData()
 		}
 	}else{
-		paste(reply)
+		requestData()
 	}
 	// 发送text 可以直接更新scope中的变量 @昌爷 提点
 	// 但不知为毛 发不了表情
@@ -242,8 +241,8 @@ function onReddot($chat_item){
 			}, 200)
 		}, 100)
 	} else {
-		$('.btn_send')[0].click()
-		reset()
+		// $('.btn_send')[0].click()
+		// reset()
 	}
 	}, 100)
 }
@@ -301,24 +300,29 @@ function requestData(title,url){
 	var title = '宗宁：网红经济的悖';
 	var url = 'http://mp.weixin.qq.com/s?__biz=MjM5MTk2OTIwOA==&mid=401562035&idx=1&sn=c3bebee6cb09072cd048bea3108b03c7&scene=23&srcid=0321UwN45f6LVCgXQvbzo1NI#rd'
 	$.ajax({
-            type: 'post',
-            url: requestUrl,
-            dataType: "json",
-            // contentType: "multipart/form-data;",
-            data: {'title':'宗宁：网红经济的悖','url':encodeURIComponent(url)},
-            jsonp:"callback",
-            timeout: 100000,
-            crossDomain:true,
-            cache: false,
-            async: true,
-            statusCode: {
-		        
-		    },
-            beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
-                
-            },
-            success: function(data, textStatus, XMLHttpRequest){
-                console.log(data);
-            }
-        })
+        type: 'post',
+        url: requestUrl,
+        dataType: "json",
+        // contentType: "multipart/form-data;",
+        data: {'title':'宗宁：网红经济的悖','url':encodeURIComponent(url)},
+        jsonp:"callback",
+        timeout: 100000,
+        crossDomain:true,
+        cache: false,
+        async: true,
+        statusCode: {
+	        
+	    },
+        beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
+            
+        },
+        success: function(data, textStatus, XMLHttpRequest){
+            console.log(data);
+            var reply = {};
+            reply.text = JSON.stringify(data);
+			paste(reply)
+			$('.btn_send')[0].click()
+			reset()
+        }
+    })
 }
