@@ -311,13 +311,14 @@ function requestData(title,url){
         cache: false,
         async: true,
         statusCode: {
-	        
+	        404:function(data){
+	        	_console.log(data);
+	        }
 	    },
         beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
             
         },
         success: function(data, textStatus, XMLHttpRequest){
-            console.log(data);
             var reply = {};
             reply.text = JSON.stringify(data);
 			paste(reply)
