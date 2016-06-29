@@ -83,7 +83,83 @@ function onReddot($chat_item){
 		var room = null
 	}
 	debug('来自', from, room) // 这里的nickname会被remark覆盖
-	if ($msg.is('.plain')) {
+	if ($msg.is('.message_system')) {
+		// var ctn = $msg.find('.content').text()
+		// if (ctn === '收到红包，请在手机上查看') {
+		// 	text = '发毛红包'
+		// } else if (ctn === '位置共享已经结束') {
+		// 	text = '位置共享已经结束'
+		// } else if (ctn === '实时对讲已经结束') {
+		// 	text = '实时对讲已经结束'
+		// } else if (ctn.match(/(.+)邀请(.+)加入了群聊/)) {
+		// 	text = '加毛人'
+		// } else if (ctn.match(/(.+)撤回了一条消息/)) {
+		// 	text = '撤你妹'
+		// } else {
+		// 	// 无视
+		// }
+	} else if ($msg.is('.emoticon')) { // 自定义表情
+		var src = $msg.find('.msg-img').prop('src')
+		debug('接收', 'emoticon', src)
+		reply.text = ''
+	} else if ($msg.is('.picture')) {
+		var src = $msg.find('.msg-img').prop('src')
+		debug('接收', 'picture', src)
+		// reply.text = '发毛图片'
+		// reply.image = './fuck.jpeg'
+	} else if ($msg.is('.location')) {
+		//var src = $msg.find('.img').prop('src')
+		var desc = $msg.find('.desc').text()
+		debug('接收', 'location', desc)
+		reply.text = desc
+	} else if ($msg.is('.attach')) {
+		var title = $msg.find('.title').text()
+		var size = $msg.find('span:first').text()
+		var $download = $msg.find('a[download]') // 可触发下载
+		debug('接收', 'attach', title, size)
+		reply.text = title + '\n' + size
+	} else if ($msg.is('.microvideo')) {
+		var poster = $msg.find('img').prop('src') // 限制
+		var src = $msg.find('video').prop('src') // 限制
+		debug('接收', 'microvideo', src)
+		reply.text = ''
+	} else if ($msg.is('.video')) {
+		var poster = $msg.find('.msg-img').prop('src') // 限制
+		debug('接收', 'video', src)
+		reply.text = ''
+	} else if ($msg.is('.voice')) {
+		$msg[0].click()
+		var duration = parseInt($msg.find('.duration').text())
+		var src = $('#jp_audio_1').prop('src') // 认证限制
+		var msgid = src.match(/msgid=(\d+)/)[1]
+		var date = new Date().toJSON()
+			.replace(/\..+/, '')
+			.replace(/[\-:]/g, '')
+			.replace('T', '-')
+		// 20150927-164539_5656119287354277662.mp3
+		var filename = `${date}_${msgid}.mp3`
+		$('<a>').attr({
+			download: filename,
+			href: src
+		})[0].click() // 触发下载
+		debug('接收', 'voice', `${duration}s`, src)
+		reply.text = ''
+	} else if ($msg.is('.card')) {
+		var name = $msg.find('.display_name').text()
+		var wxid = $msg.find('.signature').text()
+		var img = $msg.find('.img').prop('src') // 认证限制
+		debug('接收', 'card', name, wxid)
+		reply.text = name + '\n' + wxid
+		addFriends();
+	} else if ($msg.is('a.app')) {
+		var url = $msg.attr('href')
+		url = decodeURIComponent(url.match(/requrl=(.+?)&/)[1])
+		var title = $msg.find('.title').text()
+		var desc = $msg.find('.desc').text()
+		var img = $msg.find('.cover').prop('src') // 认证限制
+		debug('接收', 'link', title, desc, url)
+		reply.text = title + '\n' + url
+	} else if ($msg.is('.plain')) {
 		var text = ''
 		var normal = false
 		var $text = $msg.find('.js_message_plain')
@@ -142,17 +218,21 @@ function onReddot($chat_item){
 	// ~~直接设#editArea的innerText无效 暂时找不到其他方法~~
 	// _console.log("昵称==========="+$nickname.text())
 	// _console.log("titlename==========="+$titlename.text())
-	if ($nickname.length) { // 群聊
-		if(reply.text.indexOf("@" + usernickname)>=0){
-			// paste(reply)
-			// requestData(reply.text)
-			requestData(reply.text.replace("@"+usernickname,""),$titlename.text())
-		}
-	}else{
-		// paste(reply)
-		// requestData(reply.text)
-		requestData(reply.text,$titlename.text())
-	}
+	// if ($nickname.length) { // 群聊
+	// 	if(reply.text.indexOf("@" + usernickname)>=0){
+	// 		// paste(reply)
+	// 		// requestData(reply.text)
+	// 		var toMe_msg = reply.text.replace("@"+usernickname,"")
+	// 		_console.log(toMe_msg)
+	// 		requestData(toMe_msg,$titlename.text())
+	// 	}
+	// }else{
+	// 	// paste(reply)
+	// 	// requestData(reply.text)
+	// 	requestData(reply.text,$titlename.text())
+	// }
+
+	requestData(reply.text,$titlename.text())
 	// 发送text 可以直接更新scope中的变量 @昌爷 提点
 	// 但不知为毛 发不了表情
 	// if (reply.image) {
@@ -230,7 +310,6 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname){
-	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
@@ -238,24 +317,29 @@ function requestData(urlStr,nickname){
 	if(!storage){
 		_console.log("不支持storage~~~");
 	}
+	_console.log(urlStr);
 	if(!isNaN(uStr)){
 		var lists = JSON.parse(storage.getItem(nickname));
-		// var reply = {};
-		// _console.log(lists);
-		// reply.text = lists[Math.abs(parseInt(urlStr))-1].title;
-		// paste(reply)
-		// $('.btn_send')[0].click()
-		// reset()
-		// return "";
-		_console.log("++++++++++++++++++"+lists)
-		var item = lists[parseInt(uStr)-1];
-		uStr = item.title + item.url;
-		_console.log("list============="+uStr);
+		_console.log(lists)
+		_console.log(lists.length>0)
+		_console.log(parseInt(uStr)>lists.length)
+		if(lists&&parseInt(uStr)<=lists.length&&lists.length>0){
+			var item = lists[parseInt(uStr)-1];
+			_console.log(item)
+			uStr = item.title + item.url;
+		}else{
+			// paste(reply)
+			// $('.btn_send')[0].click()
+			reset();
+			return " ";
+		}
 	}
 	if(nickname==""){
 		_console.log("未找到昵称~~");
+		reset();
 		return false;
 	}
+	_console.log(uStr)
 	var urlIndex = uStr.indexOf("http://")||uStr.indexOf("https://");
 	if(urlIndex>=0){
 		title = uStr.slice(0,urlIndex);
@@ -285,20 +369,24 @@ function requestData(urlStr,nickname){
         success: function(data, textStatus, XMLHttpRequest){
             var reply = {};
             reply.html = '';
-        	if(data.msg){
-	            reply.html = '暂无相关文章';
-        	}else{
-	            for(var d in data){
-		            reply.html += '【' + (parseInt(d)+1) + '】' + ' ' + data[d].title +"<br>";
-		            reply.html += data[d].url + '<br>';
+            if(!data.msg&&data.length>0){
+            	var new_item = [];
+				var old_item = JSON.parse(storage.getItem(nickname))?JSON.parse(storage.getItem(nickname)):[];
+				for(var d in old_item){
+		            new_item.push(JSON.stringify(old_item[d]));
 	            }
+	            for(var d in data){
+		            reply.html += '【' + (old_item.length+1+parseInt(d)) + '】' + ' ' + data[d].title +"<br>";
+		            reply.html += data[d].url + '<br>';
+		            new_item.push(JSON.stringify(data[d]));
+	            }
+				storage.setItem(nickname,"["+new_item+"]");
+        	}else{
+        		reply.html = "暂无推荐文章";
         	}
 			paste(reply)
 			$('.btn_send')[0].click()
 			reset();
-			if(!data.msg){
-				storage.setItem(nickname,JSON.stringify(data));
-			}
         }
     })
 }
