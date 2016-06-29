@@ -7,7 +7,7 @@ var bytes = require('bytes')
 
 function debug(/*args*/){
 	var args = JSON.stringify(_.toArray(arguments))
-	console.log(args)
+	// console.log(args)
 }
 
 

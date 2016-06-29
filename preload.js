@@ -27,7 +27,7 @@ function init(){
 	var checkForQrcode = setInterval(function(){
 		var qrimg = document.querySelector('.qrcode img')
 		if (qrimg && qrimg.src.match(/\/qrcode/)) {
-			debug('二维码', qrimg.src)
+			// debug('二维码', qrimg.src)
 			clearInterval(checkForQrcode)
 		}
 	}, 100)
@@ -83,119 +83,47 @@ function onReddot($chat_item){
 		var room = null
 	}
 	debug('来自', from, room) // 这里的nickname会被remark覆盖
-	// 系统消息暂时无法捕获
-	// 因为不产生红点 而目前我们依靠红点 可以改善
-	if ($msg.is('.message_system')) {
-		var ctn = $msg.find('.content').text()
-		if (ctn === '收到红包，请在手机上查看') {
-			text = '发毛红包'
-		} else if (ctn === '位置共享已经结束') {
-			text = '位置共享已经结束'
-		} else if (ctn === '实时对讲已经结束') {
-			text = '实时对讲已经结束'
-		} else if (ctn.match(/(.+)邀请(.+)加入了群聊/)) {
-			text = '加毛人'
-		} else if (ctn.match(/(.+)撤回了一条消息/)) {
-			text = '撤你妹'
-		} else {
-			// 无视
-		}
-	} else if ($msg.is('.emoticon')) { // 自定义表情
-		var src = $msg.find('.msg-img').prop('src')
-		debug('接收', 'emoticon', src)
-		reply.text = '发毛表情'
-	} else if ($msg.is('.picture')) {
-		var src = $msg.find('.msg-img').prop('src')
-		debug('接收', 'picture', src)
-		// reply.text = '发毛图片'
-		reply.image = './fuck.jpeg'
-	} else if ($msg.is('.location')) {
-		//var src = $msg.find('.img').prop('src')
-		var desc = $msg.find('.desc').text()
-		debug('接收', 'location', desc)
-		reply.text = desc
-	} else if ($msg.is('.attach')) {
-		var title = $msg.find('.title').text()
-		var size = $msg.find('span:first').text()
-		var $download = $msg.find('a[download]') // 可触发下载
-		debug('接收', 'attach', title, size)
-		reply.text = title + '\n' + size
-	} else if ($msg.is('.microvideo')) {
-		var poster = $msg.find('img').prop('src') // 限制
-		var src = $msg.find('video').prop('src') // 限制
-		debug('接收', 'microvideo', src)
-		reply.text = '发毛小视频'
-	} else if ($msg.is('.video')) {
-		var poster = $msg.find('.msg-img').prop('src') // 限制
-		debug('接收', 'video', src)
-		reply.text = '发毛视频'
-	} else if ($msg.is('.voice')) {
-		$msg[0].click()
-		var duration = parseInt($msg.find('.duration').text())
-		var src = $('#jp_audio_1').prop('src') // 认证限制
-		var msgid = src.match(/msgid=(\d+)/)[1]
-		var date = new Date().toJSON()
-			.replace(/\..+/, '')
-			.replace(/[\-:]/g, '')
-			.replace('T', '-')
-		// 20150927-164539_5656119287354277662.mp3
-		var filename = `${date}_${msgid}.mp3`
-		$('<a>').attr({
-			download: filename,
-			href: src
-		})[0].click() // 触发下载
-		debug('接收', 'voice', `${duration}s`, src)
-		reply.text = '发毛语音'
-	} else if ($msg.is('.card')) {
-		var name = $msg.find('.display_name').text()
-		var wxid = $msg.find('.signature').text()
-		var img = $msg.find('.img').prop('src') // 认证限制
-		debug('接收', 'card', name, wxid)
-		// reply.text = name + '\n' + wxid
-		reply.text = "你好  我的朋友"
-		addFriends();
-		return false;
-	} else if ($msg.is('a.app')) {
-		var url = $msg.attr('href')
-		url = decodeURIComponent(url.match(/requrl=(.+?)&/)[1])
-		var title = $msg.find('.title').text()
-		var desc = $msg.find('.desc').text()
-		var img = $msg.find('.cover').prop('src') // 认证限制
-		debug('接收', 'link', title, desc, url)
-		reply.text = title + '\n' + url
-	} else if ($msg.is('.plain')) {
+	if ($msg.is('.plain')) {
 		var text = ''
 		var normal = false
 		var $text = $msg.find('.js_message_plain')
-		$text.contents().each(function(i, node){
-			if (node.nodeType === Node.TEXT_NODE) {
-				text += node.nodeValue
-			} else if (node.nodeType === Node.ELEMENT_NODE) {
-				var $el = $(node)
-				if ($el.is('br')) text += '\n'
-				else if ($el.is('.qqemoji, .emoji')) {
-					text += $el.attr('text').replace(/_web$/, '')
-				}
-			}
-		})
+		// $text.contents().each(function(i, node){
+		// 	if (node.nodeType === Node.TEXT_NODE) {
+		// 		text += node.nodeValue
+		// 	} else if (node.nodeType === Node.ELEMENT_NODE) {
+		// 		var $el = $(node)
+		// 		if ($el.is('br')) text += '\n'
+		// 		else if ($el.is('.qqemoji, .emoji')) {
+		// 			text += $el.attr('text').replace(/_web$/, '')
+		// 		}
+		// 	}
+		// })
+		text = $text.text();
+		_console.log($text.text());
 		if (text === '[收到了一个表情，请在手机上查看]' ||
 				text === '[Received a sticker. View on phone]') { // 微信表情包
-			text = '发毛表情'
+			// text = '发毛表情'
+			// return false;
 		} else if (text === '[收到一条微信转账消息，请在手机上查看]' ||
 				text === '[Received transfer. View on phone.]') {
-			text = '转毛帐'
+			// text = '转毛帐'
+			// return false;
 		} else if (text === '[收到一条视频/语音聊天消息，请在手机上查看]' ||
 				text === '[Received video/voice chat message. View on phone.]') {
-			text = '聊jj'
+			// text = '聊jj'
+			// return false;
 		} else if (text === '我发起了实时对讲') {
-			text = '对讲你妹'
+			// text = '对讲你妹'
+			// return false;
 		} else if (text === '该类型暂不支持，请在手机上查看') {
-			text = '啥玩意儿'
+			// text = '啥玩意儿'
+			// return false;
 		} else if (text.match(/(.+)发起了位置共享，请在手机上查看/) ||
 				text.match(/(.+)started a real\-time location session\. View on phone/)) {
-			text = '发毛位置共享'
+			// text = '发毛位置共享'
+			// return false;
 		}else if(text.indexOf("已通过你的好友验证请求，现在可以开始聊天了")>=0){
-			text = '加我干嘛~~~'
+			text = "what's going on~"
 		} else {
 			normal = true
 		}
@@ -207,17 +135,23 @@ function onReddot($chat_item){
 		debug('接收', 'BUG', $msg);
 	}
 	debug('回复', reply)
+	// if(reply.text.indexOf("http://")>0){
 
+	// }
 	// 借用clipboard 实现输入文字 更新ng-model=EditAreaCtn
 	// ~~直接设#editArea的innerText无效 暂时找不到其他方法~~
+	// _console.log("昵称==========="+$nickname.text())
+	// _console.log("titlename==========="+$titlename.text())
 	if ($nickname.length) { // 群聊
-		_console.log("群聊。。。"+ reply.text);
 		if(reply.text.indexOf("@" + usernickname)>=0){
-			reply.text = "叫我干啥~~";
-			requestData()
+			// paste(reply)
+			// requestData(reply.text)
+			requestData(reply.text.replace("@"+usernickname,""),$titlename.text())
 		}
 	}else{
-		requestData()
+		// paste(reply)
+		// requestData(reply.text)
+		requestData(reply.text,$titlename.text())
 	}
 	// 发送text 可以直接更新scope中的变量 @昌爷 提点
 	// 但不知为毛 发不了表情
@@ -295,21 +229,51 @@ function addFriends(){
 	},1000);
 }
 //request data
-function requestData(title,url){
+function requestData(urlStr,nickname){
 	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
-	var title = '宗宁：网红经济的悖';
-	var url = 'http://mp.weixin.qq.com/s?__biz=MjM5MTk2OTIwOA==&mid=401562035&idx=1&sn=c3bebee6cb09072cd048bea3108b03c7&scene=23&srcid=0321UwN45f6LVCgXQvbzo1NI#rd'
+	var title = '';
+	var url = '';
+	var uStr = urlStr;
+	var storage = window.localStorage; 
+	if(!storage){
+		_console.log("不支持storage~~~");
+	}
+	if(!isNaN(uStr)){
+		var lists = JSON.parse(storage.getItem(nickname));
+		// var reply = {};
+		// _console.log(lists);
+		// reply.text = lists[Math.abs(parseInt(urlStr))-1].title;
+		// paste(reply)
+		// $('.btn_send')[0].click()
+		// reset()
+		// return "";
+		_console.log("++++++++++++++++++"+lists)
+		var item = lists[parseInt(uStr)-1];
+		uStr = item.title + item.url;
+		_console.log("list============="+uStr);
+	}
+	if(nickname==""){
+		_console.log("未找到昵称~~");
+		return false;
+	}
+	var urlIndex = uStr.indexOf("http://")||uStr.indexOf("https://");
+	if(urlIndex>=0){
+		title = uStr.slice(0,urlIndex);
+		url = uStr.slice(urlIndex,uStr.length);
+	}
+	_console.log("title====="+title)
+	_console.log("url====="+url)
 	$.ajax({
         type: 'post',
         url: requestUrl,
         dataType: "json",
         // contentType: "multipart/form-data;",
-        data: {'title':'宗宁：网红经济的悖','url':encodeURIComponent(url)},
+        data: {'title':title,'url':encodeURIComponent(url)},
         jsonp:"callback",
         timeout: 100000,
         crossDomain:true,
         cache: false,
-        async: true,
+        async: false,
         statusCode: {
 	        404:function(data){
 	        	_console.log(data);
@@ -320,10 +284,21 @@ function requestData(title,url){
         },
         success: function(data, textStatus, XMLHttpRequest){
             var reply = {};
-            reply.text = JSON.stringify(data);
+            reply.html = '';
+        	if(data.msg){
+	            reply.html = '暂无相关文章';
+        	}else{
+	            for(var d in data){
+		            reply.html += '【' + (parseInt(d)+1) + '】' + ' ' + data[d].title +"<br>";
+		            reply.html += data[d].url + '<br>';
+	            }
+        	}
 			paste(reply)
 			$('.btn_send')[0].click()
-			reset()
+			reset();
+			if(!data.msg){
+				storage.setItem(nickname,JSON.stringify(data));
+			}
         }
     })
 }
