@@ -5,7 +5,10 @@ var _ = require('lodash')
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
-
+var storage = window.localStorage; 
+if(!storage){
+	_console.log("不支持storage~~~");
+}
 function debug(/*args*/){
 	var args = JSON.stringify(_.toArray(arguments))
 	_console.log(args)
@@ -313,29 +316,20 @@ function requestData(urlStr,nickname){
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
-	var storage = window.localStorage; 
-	if(!storage){
-		_console.log("不支持storage~~~");
-	}
-	_console.log(urlStr);
+	var reply = {};
+	debug("接收内容",urlStr)
 	if(!isNaN(uStr)){
 		var lists = JSON.parse(storage.getItem(nickname));
-		_console.log(lists)
-		_console.log(lists.length>0)
-		_console.log(parseInt(uStr)>lists.length)
 		if(lists&&parseInt(uStr)<=lists.length&&lists.length>0){
 			var item = lists[parseInt(uStr)-1];
-			_console.log(item)
 			uStr = item.title + item.url;
 		}else{
-			// paste(reply)
-			// $('.btn_send')[0].click()
 			reset();
 			return " ";
 		}
 	}
 	if(nickname==""){
-		_console.log("未找到昵称~~");
+		debug("昵称未找到~",nickname)
 		reset();
 		return false;
 	}
@@ -344,7 +338,32 @@ function requestData(urlStr,nickname){
 	if(urlIndex>=0){
 		title = uStr.slice(0,urlIndex);
 		url = uStr.slice(urlIndex,uStr.length);
+		var history = JSON.parse(storage.getItem(nickname+"_send"));
+		if(history&&history.length>0){
+			reply.html = "";
+			for(var h in history){
+				debug(history[h],"新旧标题",title,"结果",history[h].title==title)
+				if(history[h].title==title){
+					var beginNo = parseInt(history[h].begin),endNo = parseInt(history[h].end);
+					var datalist = JSON.parse(storage.getItem(nickname));
+					for(var d=beginNo;d<=endNo;d++){
+						reply.html += (d + 1) + '.' + ' ' + datalist[d].title +"<br>";
+			            reply.html += datalist[d].url + '<br>';
+					}
+		            paste(reply)
+					$('.btn_send')[0].click()
+					reset();
+					return "";
+				}
+			}
+		}
+		dataConn(requestUrl,title,url,nickname);
+	}else{
+		reset();
+		return "";
 	}
+}
+function dataConn(requestUrl,title,url,nickname){
 	_console.log("title====="+title)
 	_console.log("url====="+url)
 	$.ajax({
@@ -371,16 +390,44 @@ function requestData(urlStr,nickname){
             reply.html = '';
             if(!data.msg&&data.length>0){
             	var new_item = [];
+            	var new_item_title = JSON.parse(storage.getItem(nickname+"_send"))?JSON.parse(storage.getItem(nickname+"_send")):[]
 				var old_item = JSON.parse(storage.getItem(nickname))?JSON.parse(storage.getItem(nickname)):[];
 				for(var d in old_item){
-		            new_item.push(JSON.stringify(old_item[d]));
+		            new_item.push(old_item[d]);
 	            }
+	            for(var x = 0;x <(data.length/20);x++){
+		            var tempArry = [];
+	            	//抽出url
+	            	var cdt = 20*(x+1)>data.length?data.length:20*(x+1);
+	            	_console.log("cdt+++++++++"+cdt);
+		            for(var d = x*20; d<cdt;d ++){
+		            	tempArry.push(encodeURIComponent(data[d].url));
+		            }
+		            debug("data数组",data,"长度",data.length)
+		            debug("临时数组",tempArry,"长度",tempArry.length)
+		            //生成短url
+		            var short_urls = createShort_url(tempArry);
+		            debug("短连接数组",short_urls,"长度",short_urls.length)
+		            //替换长url
+		            for(var s in short_urls){
+		            	for(var d in data){
+		            		if(data[d].url==short_urls[s].long){
+		            			data[d].url = short_urls[s].short;
+		            			break;
+		            		}
+		            	}
+		            }
+	            }
+
+	            //替换完成 发送并保存信息
 	            for(var d in data){
-		            reply.html += '【' + (old_item.length+1+parseInt(d)) + '】' + ' ' + data[d].title +"<br>";
+		            reply.html += (old_item.length+1+parseInt(d)) + '.' + ' ' + data[d].title +"<br>";
 		            reply.html += data[d].url + '<br>';
-		            new_item.push(JSON.stringify(data[d]));
+		            new_item.push(data[d]);
 	            }
-				storage.setItem(nickname,"["+new_item+"]");
+	            new_item_title.push({"title":title,"begin":old_item.length,"end":(new_item.length-1)});
+				storage.setItem(nickname,JSON.stringify(new_item));
+				storage.setItem(nickname+"_send", JSON.stringify(new_item_title));
         	}else{
         		reply.html = "暂无推荐文章";
         	}
@@ -389,4 +436,26 @@ function requestData(urlStr,nickname){
 			reset();
         }
     })
+}
+//生成短连接
+function createShort_url(urls){
+
+	var showurls = [];
+	var sina_url = 'https://api.weibo.com/2/short_url/shorten.json';
+    $.ajax({
+        type: 'get',
+        url: sina_url+'?access_token=2.004t5RdC0MDVFH6d0cee864fK9S8mB&url_long='+urls.join("&url_long="),
+        dataType: "json",
+        contentType: "multipart/form-data;",
+        jsonp:"callback",
+        crossDomain:true,
+        cache: false,
+        async: false,
+        success: function(data, textStatus, XMLHttpRequest){
+            for(var d in data.urls){
+            	showurls.push({"short":data.urls[d].url_short,"long":data.urls[d].url_long});
+            }
+        }
+    })
+    return showurls;
 }
