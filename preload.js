@@ -418,7 +418,6 @@ function dataConn(requestUrl,title,url,nickname){
 		            	}
 		            }
 	            }
-
 	            //替换完成 发送并保存信息
 	            for(var d in data){
 		            reply.html += (old_item.length+1+parseInt(d)) + '.' + ' ' + data[d].title +"<br>";
@@ -437,9 +436,14 @@ function dataConn(requestUrl,title,url,nickname){
         }
     })
 }
+//替换返回值的url
+function replaceMydata(){
+	
+}
+
 //生成短连接
 function createShort_url(urls){
-
+	//urls最大长度20
 	var showurls = [];
 	var sina_url = 'https://api.weibo.com/2/short_url/shorten.json';
     $.ajax({
