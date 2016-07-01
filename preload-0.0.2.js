@@ -2,9 +2,6 @@
 var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
-//待发信息集合
-var msg_results = []
-
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
@@ -22,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	// document.body.style.height = '100%'
 	document.body.style.overflow = 'hidden'
 })
-
 
 
 var free = true
@@ -52,13 +48,11 @@ function onLogin(){
 	$('img[src*=filehelper]').closest('.chat_item')[0].click()
 	var checkForReddot = setInterval(function(){
 		// window.isFocus = true
-		// 产生红点数量
 		var $reddot = $('.web_wechat_reddot, .web_wechat_reddot_middle').last()
 		if ($reddot.length) {
 			var $chat_item = $reddot.closest('.chat_item')
-			msg_results.push($chat_item);
 			try {
-				// onReddot($chat_item)
+				onReddot($chat_item)
 			} catch (err) { // 错误解锁
 				reset()
 			}
@@ -67,7 +61,7 @@ function onLogin(){
 	}, 100)
 }
 
-function onReddot($chat_item){   
+function onReddot($chat_item){
 	if (!free) return
 	free = false
 	$chat_item[0].click()
@@ -319,6 +313,7 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname){
+	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
