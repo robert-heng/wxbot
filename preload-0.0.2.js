@@ -161,7 +161,7 @@ function onReddot($chat_item){
 		var desc = $msg.find('.desc').text()
 		var img = $msg.find('.cover').prop('src') // 认证限制
 		debug('接收', 'link', title, desc, url)
-		reply.text = title + '\n' + url
+		reply.text = title +  url
 	} else if ($msg.is('.plain')) {
 		var text = ''
 		var normal = false
@@ -313,7 +313,6 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname){
-	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
@@ -334,8 +333,14 @@ function requestData(urlStr,nickname){
 		reset();
 		return false;
 	}
-	_console.log(uStr)
-	var urlIndex = uStr.indexOf("http://")||uStr.indexOf("https://");
+	var urlIndex = -1;
+	if(uStr.indexOf("http://")>=0){
+		urlIndex = uStr.indexOf("http://");
+	}else if(uStr.indexOf("https://")>=0){
+		urlIndex = uStr.indexOf("https://");
+	}
+	debug("uStr",uStr)
+	debug("urlIndex",urlIndex)
 	if(urlIndex>=0){
 		title = uStr.slice(0,urlIndex);
 		url = uStr.slice(urlIndex,uStr.length);
@@ -343,7 +348,7 @@ function requestData(urlStr,nickname){
 		if(history&&history.length>0){
 			reply.html = "";
 			for(var h in history){
-				debug(history[h],"新旧标题",title,"结果",history[h].title==title)
+				// debug(history[h],"新旧标题",title,"结果",history[h].title==title)
 				if(history[h].title==title){
 					var beginNo = parseInt(history[h].begin),endNo = parseInt(history[h].end);
 					var datalist = JSON.parse(storage.getItem(nickname));
@@ -360,13 +365,15 @@ function requestData(urlStr,nickname){
 		}
 		dataConn(requestUrl,title,url,nickname);
 	}else{
+		reply.html = "暂无推荐文章"
+		paste(reply)
 		reset();
+		debug("链接无效",urlIndex)
 		return "";
 	}
 }
 function dataConn(requestUrl,title,url,nickname){
-	_console.log("title====="+title)
-	_console.log("url====="+url)
+	debug("收到title",title,"收到URL",url)
 	$.ajax({
         type: 'post',
         url: requestUrl,
@@ -400,15 +407,14 @@ function dataConn(requestUrl,title,url,nickname){
 		            var tempArry = [];
 	            	//抽出url
 	            	var cdt = 20*(x+1)>data.length?data.length:20*(x+1);
-	            	_console.log("cdt+++++++++"+cdt);
 		            for(var d = x*20; d<cdt;d ++){
 		            	tempArry.push(encodeURIComponent(data[d].url));
 		            }
-		            debug("data数组",data,"长度",data.length)
-		            debug("临时数组",tempArry,"长度",tempArry.length)
+		            // debug("data数组",data,"长度",data.length)
+		            // debug("临时数组",tempArry,"长度",tempArry.length)
 		            //生成短url
 		            var short_urls = createShort_url(tempArry);
-		            debug("短连接数组",short_urls,"长度",short_urls.length)
+		            // debug("短连接数组",short_urls,"长度",short_urls.length)
 		            //替换长url
 		            for(var s in short_urls){
 		            	for(var d in data){
