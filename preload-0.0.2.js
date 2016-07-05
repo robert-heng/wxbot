@@ -315,7 +315,6 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname){
-	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
 	var title = '';
 	var url = '';
 	var uStr = urlStr;

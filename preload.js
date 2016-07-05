@@ -2,7 +2,7 @@
 var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
-var urls = require("./request")
+var mydata = require("./request")
 //收到的信息集合
 var msg_receive = []
 //待发送的信息集合
@@ -135,12 +135,13 @@ function resolve_qst($chat_item,index){
 			var $text = $msg.find('.js_message_plain')
 			text = $text.text();
 			//判断消息是否是数字或链接
-			if(text.indexOf("http://")>=0||text.indexOf("https://")>=0||!isNaN(text)){
-				reply.text = text
-			}else{
-				debug('接收','不合格信息(沉默)',text)
-				return false
-			}
+			// if(text.indexOf("http://")>=0||text.indexOf("https://")>=0||!isNaN(text)){
+			// 	reply.text = text
+			// }else{
+			// 	debug('接收','不合格信息(沉默)',text)
+			// 	return false
+			// }
+			reply.text = text
 			debug('接收', 'text', text)
 		}else{
 			debug('接收', 'BUG', $msg);
@@ -221,7 +222,7 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname,chat_item){
-	var requestUrl = urls.getnews;
+	var requestUrl = mydata.getnews;
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
@@ -233,7 +234,7 @@ function requestData(urlStr,nickname,chat_item){
 			var item = lists[parseInt(uStr)-1];
 			uStr = item.title + item.url;
 		}else{
-			debug("未找到对应消息",uStr)
+			debug("未找到该数字对应消息",uStr)
 			return " ";
 		}
 	}
@@ -241,7 +242,7 @@ function requestData(urlStr,nickname,chat_item){
 		debug("昵称未找到~",nickname)
 		return false;
 	}
-	var urlIndex = 0;
+	var urlIndex = -1;
 	if(uStr.indexOf("http://")>=0){
 		urlIndex = uStr.indexOf("http://");
 	}else if(uStr.indexOf("https://")>=0){
@@ -272,13 +273,17 @@ function requestData(urlStr,nickname,chat_item){
 		}
 		dataConn(requestUrl,title,url,nickname,chat_item);
 	}else{
-		debug("不感兴趣,保持沉默",uStr)
+		if(uStr==mydata.trigger_keywork){
+			debug("获取今日热点",uStr)
+			getHots(mydata.getHots,chat_item)
+		}else{
+			debug("不感兴趣,保持沉默",uStr)
+		}
 		return "";
 	}
 }
+//请求新闻列表
 function dataConn(requestUrl,title,url,nickname,chat_item){
-	_console.log("title====="+title)
-	_console.log("url====="+url)
 	$.ajax({
         type: 'post',
         url: requestUrl,
@@ -295,9 +300,6 @@ function dataConn(requestUrl,title,url,nickname,chat_item){
 	        	_console.log(data);
 	        }
 	    },
-        beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
-            
-        },
         success: function(data, textStatus, XMLHttpRequest){
             var reply = {};
             reply.html = '';
@@ -352,7 +354,68 @@ function dataConn(requestUrl,title,url,nickname,chat_item){
         }
     })
 }
-
+//请求今日热点
+function getHots(requestUrl,chat_item){
+	$.ajax({
+        type: 'get',
+        url: requestUrl,
+        dataType: "json",
+        // contentType: "multipart/form-data;",
+        jsonp:"callback",
+        timeout: 100000,
+        crossDomain:true,
+        cache: false,
+        async: true,
+        statusCode: {
+	        
+	    },
+        success: function(data, textStatus, XMLHttpRequest){
+            var send_msg = {};
+            send_msg.html = '';
+            if(data.ret_code==1&&data.result.length>0){
+            	var results_hot = [];
+            	results_hot = data.result;
+	            for(var x = 0;x <(results_hot.length/20);x++){
+		            var tempArry = [];
+	            	//抽出url
+	            	var cdt = 20*(x+1)>results_hot.length?results_hot.length:20*(x+1);
+		            for(var d = x*20; d<cdt;d ++){
+		            	tempArry.push(encodeURIComponent(results_hot[d].purl));
+		            }
+		            // debug("data数组",data,"长度",data.length)
+		            // debug("临时数组",tempArry,"长度",tempArry.length)
+		            //生成短url
+		            var short_urls = createShort_url(tempArry);
+		            // debug("短连接数组",short_urls,"长度",short_urls.length)
+		            //替换长url
+		            for(var s in short_urls){
+		            	for(var r in results_hot){
+		            		if(results_hot[r].purl==short_urls[s].long){
+		            			results_hot[r].purl = short_urls[s].short;
+		            			break;
+		            		}
+		            	}
+		            }
+	            }
+	            //替换完成 发送并保存信息
+	            for(var r in results_hot){
+	            	debug("热点链接",results_hot[r].purl)
+		            send_msg.html += results_hot[r].title +"<br>";
+		            send_msg.html += results_hot[r].purl + '<br>';
+	            }
+        	}else{
+        		send_msg.html = "暂无今日热点";
+        	}
+			var msg_send_item = {};
+			msg_send_item.item = chat_item;
+			msg_send_item.text = send_msg.html;
+            msg_send.push(msg_send_item);
+        },
+        error:function(e) {
+        	return false;
+        }
+    })
+}
 //生成短连接
 function createShort_url(urls){
 	//urls最大长度20
