@@ -334,7 +334,7 @@ function dataConn(requestUrl,title,url,nickname,chat_item){
 	            }
 	            //替换完成 发送并保存信息
 	            for(var d in data){
-		            reply.html += (old_item.length+1+parseInt(d)) + '.' + ' ' + data[d].title +"<br>";
+		            reply.html += (old_item.length+1+parseInt(d)) + '.' + ' ' + data[d].title;
 		            reply.html += data[d].url + '<br>';
 		            new_item.push(data[d]);
 	            }
@@ -400,7 +400,7 @@ function getHots(requestUrl,chat_item){
 	            //替换完成 发送并保存信息
 	            for(var r in results_hot){
 	            	debug("热点链接",results_hot[r].url)
-		            send_msg.html += results_hot[r].title +"<br>";
+		            send_msg.html += results_hot[r].title;
 		            send_msg.html += results_hot[r].url + '<br>';
 	            }
         	}else{
