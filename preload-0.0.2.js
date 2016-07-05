@@ -211,6 +211,7 @@ function onReddot($chat_item){
 		// if (normal && !text.match(/叼|屌|diao|丢你|碉堡/i)) text = ''
 		reply.text = text
 	}else{
+		reply.text = "没找到对应类型"
 		debug('接收', 'BUG', $msg);
 	}
 	debug('回复', reply)
@@ -333,7 +334,7 @@ function requestData(urlStr,nickname){
 		reset();
 		return false;
 	}
-	var urlIndex = -1;
+	var urlIndex = 0;
 	if(uStr.indexOf("http://")>=0){
 		urlIndex = uStr.indexOf("http://");
 	}else if(uStr.indexOf("https://")>=0){

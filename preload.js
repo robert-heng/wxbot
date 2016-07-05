@@ -3,9 +3,13 @@ var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
 //收到的信息集合
+var msg_receive = []
+//待发送的信息集合
 var msg_send = []
 //是否处理收到的信息
-var resolve_flag = true
+var receive_flag = true
+//是否处理待发送的信息
+var send_flag = true
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
@@ -58,45 +62,36 @@ function onLogin(){
 		if ($reddot.length>0) {
 			var l = $reddot.length;
 			for(var r=0;r<l;r++){
-				$reddot[r].remove();
 				_console.log($reddot[r]);
 				var $chat_item = $reddot[r].closest('.chat_item')
-				msg_send.push($chat_item);
+				msg_receive.push($chat_item);
+				$reddot[r].remove();
 			}
 		}
 		//如果收到信息  则解析信息
+		if(msg_receive.length>0){
+			if(receive_flag){
+				receive_flag = false;
+				for(var m in msg_receive){
+					resolve_qst(msg_receive[m],m)
+				}
+				
+			}
+		}
+		//处理结果集里面的信息
 		if(msg_send.length>0){
-			if(resolve_flag){
-				resolve_msg();
+			if(send_flag){
+				send_flag = false;
+				for(var m in msg_send){
+					resolve_asw(msg_send[m],m)
+				}
 			}
 		}
 		// var newFriend = $(".chat_item .slide-left .ng-scope")[0];
 	}, 100)
 }
-//请求数据
-function resolve_msg(){
-	resolve_flag = false;
-	for(var m in msg_send){
-		var msg_text = resolve_qst(msg_send[0]);
-		if(msg_text){
-			_console.log("发送数据。。。。。。。。。。。。。。。。");
-		}
-		msg_send = msg_send.slice(1);
-	}
-	resolve_flag = true;
-}
-
-
-
-
-
-
-
-
-
-
-function resolve_qst($chat_item){   
-	// $chat_item[0].click()
+function resolve_qst($chat_item,index){   
+	$chat_item.click()
 	setTimeout(function(){
 		var reply = {}
 		var usernickname = $(".header .nickname [ng-bind-html='account.NickName']").text();
@@ -139,11 +134,8 @@ function resolve_qst($chat_item){
 			var $text = $msg.find('.js_message_plain')
 			text = $text.text();
 			//判断消息是否是数字或链接
-			if(text.indexOf("http://")||text.indexOf("https://")){
+			if(text.indexOf("http://")>=0||text.indexOf("https://")>=0||!isNaN(text)){
 				reply.text = text
-			}else if(!isNaN(text)){
-				reply.text = parseInt(text)
-				debug('接收','读取本地存储',text)
 			}else{
 				debug('接收','不合格信息(沉默)',text)
 				return false
@@ -151,11 +143,33 @@ function resolve_qst($chat_item){
 			debug('接收', 'text', text)
 		}else{
 			debug('接收', 'BUG', $msg);
+			return false;
 		}
 		debug('回复', reply)
+		requestData(reply.text,$titlename.text(),$chat_item)
+		reset();
+		if(index==(msg_receive.length-1)){
+			msg_receive = [];
+			receive_flag = true;
+		}
 		return reply.text;
-		// requestData(reply.text,$titlename.text())
 	}, 100)
+}
+//处理结果集   发送数据
+function resolve_asw(data_item,index){
+	debug("发送数据到",data_item.item,"发送内容",data_item.text);
+	data_item.item.click();
+	setTimeout(function(){
+		var opt = {};
+		opt.html = data_item.text;
+		paste(opt);
+		$('.btn_send')[0].click();
+		reset();
+	},100);
+	if(index==(msg_send.length-1)){
+		msg_send = [];
+		send_flag = true;
+	}
 }
 
 function reset(){
@@ -205,7 +219,7 @@ function addFriends(){
 	},1000);
 }
 //request data
-function requestData(urlStr,nickname){
+function requestData(urlStr,nickname,chat_item){
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
@@ -217,17 +231,20 @@ function requestData(urlStr,nickname){
 			var item = lists[parseInt(uStr)-1];
 			uStr = item.title + item.url;
 		}else{
-			reset();
+			debug("未找到对应消息",uStr)
 			return " ";
 		}
 	}
 	if(nickname==""){
 		debug("昵称未找到~",nickname)
-		reset();
 		return false;
 	}
-	_console.log(uStr)
-	var urlIndex = uStr.indexOf("http://")||uStr.indexOf("https://");
+	var urlIndex = 0;
+	if(uStr.indexOf("http://")>=0){
+		urlIndex = uStr.indexOf("http://");
+	}else if(uStr.indexOf("https://")>=0){
+		urlIndex = uStr.indexOf("https://");
+	}
 	if(urlIndex>=0){
 		title = uStr.slice(0,urlIndex);
 		url = uStr.slice(urlIndex,uStr.length);
@@ -243,20 +260,21 @@ function requestData(urlStr,nickname){
 						reply.html += (d + 1) + '.' + ' ' + datalist[d].title +"<br>";
 			            reply.html += datalist[d].url + '<br>';
 					}
-		            paste(reply)
-					$('.btn_send')[0].click()
-					reset();
+					var msg_send_item = {};
+					msg_send_item.item = chat_item;
+					msg_send_item.text = reply.html;
+		            msg_send.push(msg_send_item);
 					return "";
 				}
 			}
 		}
-		dataConn(requestUrl,title,url,nickname);
+		dataConn(requestUrl,title,url,nickname,chat_item);
 	}else{
-		reset();
+		debug("不感兴趣,保持沉默",uStr)
 		return "";
 	}
 }
-function dataConn(requestUrl,title,url,nickname){
+function dataConn(requestUrl,title,url,nickname,chat_item){
 	_console.log("title====="+title)
 	_console.log("url====="+url)
 	$.ajax({
@@ -269,7 +287,7 @@ function dataConn(requestUrl,title,url,nickname){
         timeout: 100000,
         crossDomain:true,
         cache: false,
-        async: false,
+        async: true,
         statusCode: {
 	        404:function(data){
 	        	_console.log(data);
@@ -292,15 +310,14 @@ function dataConn(requestUrl,title,url,nickname){
 		            var tempArry = [];
 	            	//抽出url
 	            	var cdt = 20*(x+1)>data.length?data.length:20*(x+1);
-	            	_console.log("cdt+++++++++"+cdt);
 		            for(var d = x*20; d<cdt;d ++){
 		            	tempArry.push(encodeURIComponent(data[d].url));
 		            }
-		            debug("data数组",data,"长度",data.length)
-		            debug("临时数组",tempArry,"长度",tempArry.length)
+		            // debug("data数组",data,"长度",data.length)
+		            // debug("临时数组",tempArry,"长度",tempArry.length)
 		            //生成短url
 		            var short_urls = createShort_url(tempArry);
-		            debug("短连接数组",short_urls,"长度",short_urls.length)
+		            // debug("短连接数组",short_urls,"长度",short_urls.length)
 		            //替换长url
 		            for(var s in short_urls){
 		            	for(var d in data){
@@ -323,15 +340,15 @@ function dataConn(requestUrl,title,url,nickname){
         	}else{
         		reply.html = "暂无推荐文章";
         	}
-			paste(reply)
-			$('.btn_send')[0].click()
-			reset();
+			var msg_send_item = {};
+			msg_send_item.item = chat_item;
+			msg_send_item.text = reply.html;
+            msg_send.push(msg_send_item);
+        },
+        error:function(e) {
+        	return false;
         }
     })
-}
-//替换返回值的url
-function replaceMydata(){
-	
 }
 
 //生成短连接
