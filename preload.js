@@ -2,10 +2,6 @@
 var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
-//收到的信息集合
-var msg_send = []
-//是否处理收到的信息
-var resolve_flag = true
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
@@ -25,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 
-
+var free = true
 // setTimeout(function(){
 	init()
 // }, 3000)
@@ -52,109 +48,219 @@ function onLogin(){
 	$('img[src*=filehelper]').closest('.chat_item')[0].click()
 	var checkForReddot = setInterval(function(){
 		// window.isFocus = true
-		// 产生红点数量
-		var $reddot = $('.web_wechat_reddot, .web_wechat_reddot_middle')
-		//如果收到信息产生红点 则添加到数组中
-		if ($reddot.length>0) {
-			var l = $reddot.length;
-			for(var r=0;r<l;r++){
-				$reddot[r].remove();
-				_console.log($reddot[r]);
-				var $chat_item = $reddot[r].closest('.chat_item')
-				msg_send.push($chat_item);
-			}
-		}
-		//如果收到信息  则解析信息
-		if(msg_send.length>0){
-			if(resolve_flag){
-				resolve_msg();
+		var $reddot = $('.web_wechat_reddot, .web_wechat_reddot_middle').last()
+		if ($reddot.length) {
+			var $chat_item = $reddot.closest('.chat_item')
+			try {
+				onReddot($chat_item)
+			} catch (err) { // 错误解锁
+				reset()
 			}
 		}
 		// var newFriend = $(".chat_item .slide-left .ng-scope")[0];
 	}, 100)
 }
-//请求数据
-function resolve_msg(){
-	resolve_flag = false;
-	for(var m in msg_send){
-		var msg_text = resolve_qst(msg_send[0]);
-		if(msg_text){
-			_console.log("发送数据。。。。。。。。。。。。。。。。");
-		}
-		msg_send = msg_send.slice(1);
-	}
-	resolve_flag = true;
-}
 
-
-
-
-
-
-
-
-
-
-function resolve_qst($chat_item){   
-	// $chat_item[0].click()
+function onReddot($chat_item){
+	if (!free) return
+	free = false
+	$chat_item[0].click()
 	setTimeout(function(){
-		var reply = {}
-		var usernickname = $(".header .nickname [ng-bind-html='account.NickName']").text();
-		// 自动回复 相同的内容
-		var $msg = $([
-			'.message:not(.me) .bubble_cont > div',
-			'.message:not(.me) .bubble_cont > a.app',
-			'.message:not(.me) .emoticon',
-			'.message_system'
-		].join(', ')).last()
-		var $message = $msg.closest('.message')
-		var $nickname = $message.find('.nickname')
-		var $titlename = $('.title_name')
-		if ($nickname.length) { // 群聊
-			var from = $nickname.text()
-			var room = $titlename.text()
-		} else { // 单聊
-			var from = $titlename.text()
-			var room = null
+	var reply = {}
+	var usernickname = $(".header .nickname [ng-bind-html='account.NickName']").text();
+	// 自动回复 相同的内容
+	var $msg = $([
+		'.message:not(.me) .bubble_cont > div',
+		'.message:not(.me) .bubble_cont > a.app',
+		'.message:not(.me) .emoticon',
+		'.message_system'
+	].join(', ')).last()
+	var $message = $msg.closest('.message')
+	var $nickname = $message.find('.nickname')
+	var $titlename = $('.title_name')
+	if ($nickname.length) { // 群聊
+		var from = $nickname.text()
+		var room = $titlename.text()
+	} else { // 单聊
+		var from = $titlename.text()
+		var room = null
+	}
+	debug('来自', from, room) // 这里的nickname会被remark覆盖
+	if ($msg.is('.message_system')) {
+		// var ctn = $msg.find('.content').text()
+		// if (ctn === '收到红包，请在手机上查看') {
+		// 	text = '发毛红包'
+		// } else if (ctn === '位置共享已经结束') {
+		// 	text = '位置共享已经结束'
+		// } else if (ctn === '实时对讲已经结束') {
+		// 	text = '实时对讲已经结束'
+		// } else if (ctn.match(/(.+)邀请(.+)加入了群聊/)) {
+		// 	text = '加毛人'
+		// } else if (ctn.match(/(.+)撤回了一条消息/)) {
+		// 	text = '撤你妹'
+		// } else {
+		// 	// 无视
+		// }
+	} else if ($msg.is('.emoticon')) { // 自定义表情
+		var src = $msg.find('.msg-img').prop('src')
+		debug('接收', 'emoticon', src)
+		reply.text = ''
+	} else if ($msg.is('.picture')) {
+		var src = $msg.find('.msg-img').prop('src')
+		debug('接收', 'picture', src)
+		// reply.text = '发毛图片'
+		// reply.image = './fuck.jpeg'
+	} else if ($msg.is('.location')) {
+		//var src = $msg.find('.img').prop('src')
+		var desc = $msg.find('.desc').text()
+		debug('接收', 'location', desc)
+		reply.text = desc
+	} else if ($msg.is('.attach')) {
+		var title = $msg.find('.title').text()
+		var size = $msg.find('span:first').text()
+		var $download = $msg.find('a[download]') // 可触发下载
+		debug('接收', 'attach', title, size)
+		reply.text = title + '\n' + size
+	} else if ($msg.is('.microvideo')) {
+		var poster = $msg.find('img').prop('src') // 限制
+		var src = $msg.find('video').prop('src') // 限制
+		debug('接收', 'microvideo', src)
+		reply.text = ''
+	} else if ($msg.is('.video')) {
+		var poster = $msg.find('.msg-img').prop('src') // 限制
+		debug('接收', 'video', src)
+		reply.text = ''
+	} else if ($msg.is('.voice')) {
+		$msg[0].click()
+		var duration = parseInt($msg.find('.duration').text())
+		var src = $('#jp_audio_1').prop('src') // 认证限制
+		var msgid = src.match(/msgid=(\d+)/)[1]
+		var date = new Date().toJSON()
+			.replace(/\..+/, '')
+			.replace(/[\-:]/g, '')
+			.replace('T', '-')
+		// 20150927-164539_5656119287354277662.mp3
+		var filename = `${date}_${msgid}.mp3`
+		$('<a>').attr({
+			download: filename,
+			href: src
+		})[0].click() // 触发下载
+		debug('接收', 'voice', `${duration}s`, src)
+		reply.text = ''
+	} else if ($msg.is('.card')) {
+		var name = $msg.find('.display_name').text()
+		var wxid = $msg.find('.signature').text()
+		var img = $msg.find('.img').prop('src') // 认证限制
+		debug('接收', 'card', name, wxid)
+		reply.text = name + '\n' + wxid
+		addFriends();
+	} else if ($msg.is('a.app')) {
+		var url = $msg.attr('href')
+		url = decodeURIComponent(url.match(/requrl=(.+?)&/)[1])
+		var title = $msg.find('.title').text()
+		var desc = $msg.find('.desc').text()
+		var img = $msg.find('.cover').prop('src') // 认证限制
+		debug('接收', 'link', title, desc, url)
+		reply.text = title +  url
+	} else if ($msg.is('.plain')) {
+		var text = ''
+		var normal = false
+		var $text = $msg.find('.js_message_plain')
+		// $text.contents().each(function(i, node){
+		// 	if (node.nodeType === Node.TEXT_NODE) {
+		// 		text += node.nodeValue
+		// 	} else if (node.nodeType === Node.ELEMENT_NODE) {
+		// 		var $el = $(node)
+		// 		if ($el.is('br')) text += '\n'
+		// 		else if ($el.is('.qqemoji, .emoji')) {
+		// 			text += $el.attr('text').replace(/_web$/, '')
+		// 		}
+		// 	}
+		// })
+		text = $text.text();
+		_console.log($text.text());
+		if (text === '[收到了一个表情，请在手机上查看]' ||
+				text === '[Received a sticker. View on phone]') { // 微信表情包
+			// text = '发毛表情'
+			// return false;
+		} else if (text === '[收到一条微信转账消息，请在手机上查看]' ||
+				text === '[Received transfer. View on phone.]') {
+			// text = '转毛帐'
+			// return false;
+		} else if (text === '[收到一条视频/语音聊天消息，请在手机上查看]' ||
+				text === '[Received video/voice chat message. View on phone.]') {
+			// text = '聊jj'
+			// return false;
+		} else if (text === '我发起了实时对讲') {
+			// text = '对讲你妹'
+			// return false;
+		} else if (text === '该类型暂不支持，请在手机上查看') {
+			// text = '啥玩意儿'
+			// return false;
+		} else if (text.match(/(.+)发起了位置共享，请在手机上查看/) ||
+				text.match(/(.+)started a real\-time location session\. View on phone/)) {
+			// text = '发毛位置共享'
+			// return false;
+		}else if(text.indexOf("已通过你的好友验证请求，现在可以开始聊天了")>=0){
+			text = "what's going on~"
+		} else {
+			normal = true
 		}
-		debug('来自', from, room) // 这里的nickname会被remark覆盖
-		if ($msg.is('.card')) {
-			var name = $msg.find('.display_name').text()
-			var wxid = $msg.find('.signature').text()
-			var img = $msg.find('.img').prop('src') // 认证限制
-			debug('接收', 'card', name, wxid)
-			reply.text = name + '\n' + wxid
-			addFriends();
-			return false;
-		} else if ($msg.is('a.app')) {
-			var url = $msg.attr('href')
-			url = decodeURIComponent(url.match(/requrl=(.+?)&/)[1])
-			var title = $msg.find('.title').text()
-			var desc = $msg.find('.desc').text()
-			var img = $msg.find('.cover').prop('src') // 认证限制
-			debug('接收', 'link', title, desc, url)
-			reply.text = title + '\n' + url
-		} else if ($msg.is('.plain')) {
-			var text = ''
-			var $text = $msg.find('.js_message_plain')
-			text = $text.text();
-			//判断消息是否是数字或链接
-			if(text.indexOf("http://")||text.indexOf("https://")){
-				reply.text = text
-			}else if(!isNaN(text)){
-				reply.text = parseInt(text)
-				debug('接收','读取本地存储',text)
-			}else{
-				debug('接收','不合格信息(沉默)',text)
-				return false
-			}
-			debug('接收', 'text', text)
-		}else{
-			debug('接收', 'BUG', $msg);
-		}
-		debug('回复', reply)
-		return reply.text;
-		// requestData(reply.text,$titlename.text())
+		debug('接收', 'text', text)
+		
+		// if (normal && !text.match(/叼|屌|diao|丢你|碉堡/i)) text = ''
+		reply.text = text
+	}else{
+		debug('接收', 'BUG', $msg);
+	}
+	debug('回复', reply)
+	// if(reply.text.indexOf("http://")>0){
+
+	// }
+	// 借用clipboard 实现输入文字 更新ng-model=EditAreaCtn
+	// ~~直接设#editArea的innerText无效 暂时找不到其他方法~~
+	// _console.log("昵称==========="+$nickname.text())
+	// _console.log("titlename==========="+$titlename.text())
+	// if ($nickname.length) { // 群聊
+	// 	if(reply.text.indexOf("@" + usernickname)>=0){
+	// 		// paste(reply)
+	// 		// requestData(reply.text)
+	// 		var toMe_msg = reply.text.replace("@"+usernickname,"")
+	// 		_console.log(toMe_msg)
+	// 		requestData(toMe_msg,$titlename.text())
+	// 	}
+	// }else{
+	// 	// paste(reply)
+	// 	// requestData(reply.text)
+	// 	requestData(reply.text,$titlename.text())
+	// }
+
+	requestData(reply.text,$titlename.text())
+	// 发送text 可以直接更新scope中的变量 @昌爷 提点
+	// 但不知为毛 发不了表情
+	// if (reply.image) {
+	// 	paste(reply)
+	// } else {
+	// 	angular.element('#editArea').scope().editAreaCtn = reply.text
+	// }
+	// $('.web_wechat_face')[0].click() 
+	// $('[title=阴险]')[0].click() 
+	if (reply.image) {
+		setTimeout(function(){
+			var tryClickBtn = setInterval(function(){
+				var $btn = $('.dialog_ft .btn_primary')
+				if ($btn.length) {
+					$('.dialog_ft .btn_primary')[0].click()
+				} else {
+					clearInterval(tryClickBtn)
+					reset()
+				}
+			}, 200)
+		}, 100)
+	} else {
+		// $('.btn_send')[0].click()
+		// reset()
+	}
 	}, 100)
 }
 
@@ -163,6 +269,7 @@ function reset(){
 	var msgs = $('#chatArea').scope().chatContent
 	if (msgs.length >= 30) msgs.splice(0, 20)
 	$('img[src*=filehelper]').closest('.chat_item')[0].click()
+	free = true
 }
 
 function paste(opt){
@@ -226,8 +333,14 @@ function requestData(urlStr,nickname){
 		reset();
 		return false;
 	}
-	_console.log(uStr)
-	var urlIndex = uStr.indexOf("http://")||uStr.indexOf("https://");
+	var urlIndex = -1;
+	if(uStr.indexOf("http://")>=0){
+		urlIndex = uStr.indexOf("http://");
+	}else if(uStr.indexOf("https://")>=0){
+		urlIndex = uStr.indexOf("https://");
+	}
+	debug("uStr",uStr)
+	debug("urlIndex",urlIndex)
 	if(urlIndex>=0){
 		title = uStr.slice(0,urlIndex);
 		url = uStr.slice(urlIndex,uStr.length);
@@ -235,7 +348,7 @@ function requestData(urlStr,nickname){
 		if(history&&history.length>0){
 			reply.html = "";
 			for(var h in history){
-				debug(history[h],"新旧标题",title,"结果",history[h].title==title)
+				// debug(history[h],"新旧标题",title,"结果",history[h].title==title)
 				if(history[h].title==title){
 					var beginNo = parseInt(history[h].begin),endNo = parseInt(history[h].end);
 					var datalist = JSON.parse(storage.getItem(nickname));
@@ -252,13 +365,15 @@ function requestData(urlStr,nickname){
 		}
 		dataConn(requestUrl,title,url,nickname);
 	}else{
+		reply.html = "暂无推荐文章"
+		paste(reply)
 		reset();
+		debug("链接无效",urlIndex)
 		return "";
 	}
 }
 function dataConn(requestUrl,title,url,nickname){
-	_console.log("title====="+title)
-	_console.log("url====="+url)
+	debug("收到title",title,"收到URL",url)
 	$.ajax({
         type: 'post',
         url: requestUrl,
@@ -292,15 +407,14 @@ function dataConn(requestUrl,title,url,nickname){
 		            var tempArry = [];
 	            	//抽出url
 	            	var cdt = 20*(x+1)>data.length?data.length:20*(x+1);
-	            	_console.log("cdt+++++++++"+cdt);
 		            for(var d = x*20; d<cdt;d ++){
 		            	tempArry.push(encodeURIComponent(data[d].url));
 		            }
-		            debug("data数组",data,"长度",data.length)
-		            debug("临时数组",tempArry,"长度",tempArry.length)
+		            // debug("data数组",data,"长度",data.length)
+		            // debug("临时数组",tempArry,"长度",tempArry.length)
 		            //生成短url
 		            var short_urls = createShort_url(tempArry);
-		            debug("短连接数组",short_urls,"长度",short_urls.length)
+		            // debug("短连接数组",short_urls,"长度",short_urls.length)
 		            //替换长url
 		            for(var s in short_urls){
 		            	for(var d in data){
