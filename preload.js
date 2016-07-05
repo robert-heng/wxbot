@@ -2,6 +2,7 @@
 var clipboard = require('electron').clipboard
 var NativeImage = require('electron').nativeImage
 var _ = require('lodash')
+var urls = require("./request")
 //收到的信息集合
 var msg_receive = []
 //待发送的信息集合
@@ -220,6 +221,7 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname,chat_item){
+	var requestUrl = urls.getnews;
 	var title = '';
 	var url = '';
 	var uStr = urlStr;

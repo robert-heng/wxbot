@@ -86,6 +86,7 @@ function onReddot($chat_item){
 		var room = null
 	}
 	debug('来自', from, room) // 这里的nickname会被remark覆盖
+	_console.log($msg)
 	if ($msg.is('.message_system')) {
 		// var ctn = $msg.find('.content').text()
 		// if (ctn === '收到红包，请在手机上查看') {
@@ -246,22 +247,22 @@ function onReddot($chat_item){
 	// }
 	// $('.web_wechat_face')[0].click() 
 	// $('[title=阴险]')[0].click() 
-	if (reply.image) {
-		setTimeout(function(){
-			var tryClickBtn = setInterval(function(){
-				var $btn = $('.dialog_ft .btn_primary')
-				if ($btn.length) {
-					$('.dialog_ft .btn_primary')[0].click()
-				} else {
-					clearInterval(tryClickBtn)
-					reset()
-				}
-			}, 200)
-		}, 100)
-	} else {
-		// $('.btn_send')[0].click()
-		// reset()
-	}
+	// if (reply.image) {
+	// 	setTimeout(function(){
+	// 		var tryClickBtn = setInterval(function(){
+	// 			var $btn = $('.dialog_ft .btn_primary')
+	// 			if ($btn.length) {
+	// 				$('.dialog_ft .btn_primary')[0].click()
+	// 			} else {
+	// 				clearInterval(tryClickBtn)
+	// 				reset()
+	// 			}
+	// 		}, 200)
+	// 	}, 100)
+	// } else {
+	// 	// $('.btn_send')[0].click()
+	// 	// reset()
+	// }
 	}, 100)
 }
 
@@ -314,6 +315,7 @@ function addFriends(){
 }
 //request data
 function requestData(urlStr,nickname){
+	var requestUrl = "http://121.40.34.56/news/baijia/fetchRelate";
 	var title = '';
 	var url = '';
 	var uStr = urlStr;
@@ -328,6 +330,7 @@ function requestData(urlStr,nickname){
 			reset();
 			return " ";
 		}
+		debug("数字匹配--",uStr)
 	}
 	if(nickname==""){
 		debug("昵称未找到~",nickname)
@@ -389,10 +392,13 @@ function dataConn(requestUrl,title,url,nickname){
         statusCode: {
 	        404:function(data){
 	        	_console.log(data);
+	        },
+	        503:function(data){
+	        	return false;
 	        }
 	    },
         beforeSend: function(XMLHttpRequest,XMLHttpResponse,text){
-            
+           
         },
         success: function(data, textStatus, XMLHttpRequest){
             var reply = {};
