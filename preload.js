@@ -380,7 +380,7 @@ function getHots(requestUrl,chat_item){
 	            	//抽出url
 	            	var cdt = 20*(x+1)>results_hot.length?results_hot.length:20*(x+1);
 		            for(var d = x*20; d<cdt;d ++){
-		            	tempArry.push(encodeURIComponent(results_hot[d].purl));
+		            	tempArry.push(encodeURIComponent(results_hot[d].url));
 		            }
 		            // debug("data数组",data,"长度",data.length)
 		            // debug("临时数组",tempArry,"长度",tempArry.length)
@@ -390,8 +390,8 @@ function getHots(requestUrl,chat_item){
 		            //替换长url
 		            for(var s in short_urls){
 		            	for(var r in results_hot){
-		            		if(results_hot[r].purl==short_urls[s].long){
-		            			results_hot[r].purl = short_urls[s].short;
+		            		if(results_hot[r].url==short_urls[s].long){
+		            			results_hot[r].url = short_urls[s].short;
 		            			break;
 		            		}
 		            	}
@@ -399,9 +399,9 @@ function getHots(requestUrl,chat_item){
 	            }
 	            //替换完成 发送并保存信息
 	            for(var r in results_hot){
-	            	debug("热点链接",results_hot[r].purl)
+	            	debug("热点链接",results_hot[r].url)
 		            send_msg.html += results_hot[r].title +"<br>";
-		            send_msg.html += results_hot[r].purl + '<br>';
+		            send_msg.html += results_hot[r].url + '<br>';
 	            }
         	}else{
         		send_msg.html = "暂无今日热点";
