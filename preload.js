@@ -11,6 +11,8 @@ var msg_send = []
 var receive_flag = true
 //是否处理待发送的信息
 var send_flag = true
+//是否添加信息
+var addMsg_flag = true
 // 应对 微信网页偷换了console 使起失效
 // 保住console引用 便于使用
 window._console = window.console
@@ -61,39 +63,54 @@ function onLogin(){
 		var $reddot = $('.web_wechat_reddot, .web_wechat_reddot_middle')
 		//如果收到信息产生红点 则添加到数组中
 		if ($reddot.length>0) {
-			var l = $reddot.length;
-			for(var r=0;r<l;r++){
-				_console.log($reddot[r]);
-				var $chat_item = $reddot[r].closest('.chat_item')
-				msg_receive.push($chat_item);
-				$reddot[r].remove();
+			if(addMsg_flag){
+				addMsg_flag = false
+				var l = $reddot.length;
+				for(var r=0;r<l;r++){
+					_console.log($reddot[r]);
+					var $chat_item = $reddot[r].closest('.chat_item')
+					msg_receive.push($chat_item);
+					_console.log("添加一条信息")
+					$chat_item.click()
+					_console.log(msg_receive.length)
+					_console.log(receive_flag)
+				}
+				reset()
+				addMsg_flag = true;
 			}
 		}
+	}, 511)
+	var send_msg = setInterval(function(){
 		//如果收到信息  则解析信息
 		if(msg_receive.length>0){
 			if(receive_flag){
 				receive_flag = false;
+				debug("开始解析信息",msg_receive.length)
 				for(var m in msg_receive){
+					debug("信息组里的数据",msg_receive[m])
 					resolve_qst(msg_receive[m],m)
 				}
-				
 			}
 		}
 		//处理结果集里面的信息
 		if(msg_send.length>0){
 			if(send_flag){
 				send_flag = false;
+				debug("发送数据",msg_send.length)
 				for(var m in msg_send){
+					// debug("结果组里的数据",msg_send[m])
 					resolve_asw(msg_send[m],m)
+
 				}
 			}
 		}
 		// var newFriend = $(".chat_item .slide-left .ng-scope")[0];
-	}, 100)
+	}, 1770)
 }
 function resolve_qst($chat_item,index){   
 	$chat_item.click()
 	setTimeout(function(){
+		_console.log("解析信息下标",index);
 		var reply = {}
 		var usernickname = $(".header .nickname [ng-bind-html='account.NickName']").text();
 		// 自动回复 相同的内容
@@ -121,6 +138,11 @@ function resolve_qst($chat_item,index){
 			debug('接收', 'card', name, wxid)
 			reply.text = name + '\n' + wxid
 			addFriends();
+			if(index==(msg_receive.length-1)){
+				msg_receive = [];
+				receive_flag = true;
+				reset();
+			}
 			return false;
 		} else if ($msg.is('a.app')) {
 			var url = $msg.attr('href')
@@ -145,33 +167,46 @@ function resolve_qst($chat_item,index){
 			debug('接收', 'text', text)
 		}else{
 			debug('接收', 'BUG', $msg);
+			if(index==(msg_receive.length-1)){
+				msg_receive = [];
+				receive_flag = true;
+				reset();
+			}
 			return false;
 		}
 		debug('回复', reply)
 		requestData(reply.text,$titlename.text(),$chat_item)
-		reset();
 		if(index==(msg_receive.length-1)){
 			msg_receive = [];
 			receive_flag = true;
+			reset();
 		}
 		return reply.text;
 	}, 100)
 }
 //处理结果集   发送数据
 function resolve_asw(data_item,index){
-	debug("发送数据到",data_item.item,"发送内容",data_item.text);
-	data_item.item.click();
+	// debug("发送数据到",data_item.item,"发送内容",data_item.text);
+	_console.log("发送数据",index)
+	_console.log(data_item.item)
 	setTimeout(function(){
-		var opt = {};
-		opt.html = data_item.text;
-		paste(opt);
-		$('.btn_send')[0].click();
-		reset();
-	},100);
-	if(index==(msg_send.length-1)){
-		msg_send = [];
-		send_flag = true;
-	}
+		data_item.item.click();
+		setTimeout(function(){
+			var opt = {};
+			opt.html = data_item.text;
+			_console.log("回复内容",opt.html)
+			paste(opt);
+			$('.btn_send')[0].click();
+			if(index==(msg_send.length-1)){
+				msg_send = [];
+				send_flag = true;
+			}
+			// todo click点击三次
+			reset();
+		},100)
+		
+	},1000*index+1000);
+	
 }
 
 function reset(){
@@ -214,7 +249,7 @@ function addFriends(){
 		$(".bubble").filter(".js_message_bubble").filter(".ng-scope").filter(".bubble_default").filter(".left").children(".bubble_cont").children(".card")[0].click();
 		$("#mmpop_profile .nickname_area .web_wechat_tab_launch-chat").click();
 		var opt ={};
-		opt.text = "容我先说句话可好~~";
+		opt.text = " -- ";
 		paste(opt)
 		$('.btn_send')[0].click()
 		reset()
@@ -399,7 +434,7 @@ function getHots(requestUrl,chat_item){
 	            }
 	            //替换完成 发送并保存信息
 	            for(var r in results_hot){
-	            	debug("热点链接",results_hot[r].url)
+	            	// debug("热点链接",results_hot[r].url)
 		            send_msg.html += results_hot[r].title;
 		            send_msg.html += results_hot[r].url + '<br>';
 	            }
